@@ -205,4 +205,40 @@ describe("analyzeCostOptimization", () => {
     expect(advice.hybridStrategy.rules[0].tier).toBe("balanced_editing");
     expect(advice.hybridStrategy.rules[0].trafficPercentage).toBe(100);
   });
+
+  it("reports finite absolute added cost when the baseline model is free", () => {
+    const advice = analyzeCostOptimization({
+      baselineModel: localLlama,
+      candidateModels: [haikuModel],
+      developerCount: 5,
+      workingDaysPerMonth: 22,
+    });
+
+    const plan = advice.alternativePlans.find((p) => p.targetModelId === "claude-3-5-haiku");
+    expect(plan).toBeDefined();
+    expect(plan!.totalMonthlySpend).toBeGreaterThan(0);
+    expect(plan!.tradeoffSummary).not.toContain("Infinity");
+    expect(plan!.tradeoffSummary).toContain("Adds $");
+    expect(plan!.tradeoffSummary).toContain("/mo over the zero-cost baseline");
+  });
+
+  it("treats a zero-to-zero comparison as cost-neutral instead of a percentage", () => {
+    const secondFreeModel: ModelInfo = {
+      ...localLlama,
+      id: "llama-3-3-8b-local",
+      displayName: "Llama 3.3 8B (Ollama)",
+    };
+    const advice = analyzeCostOptimization({
+      baselineModel: localLlama,
+      candidateModels: [secondFreeModel],
+      developerCount: 5,
+      workingDaysPerMonth: 22,
+    });
+
+    const plan = advice.alternativePlans[0];
+    expect(plan).toBeDefined();
+    expect(plan!.totalMonthlySpend).toBe(0);
+    expect(plan!.tradeoffSummary).toContain("Cost-neutral");
+    expect(plan!.tradeoffSummary).not.toContain("Infinity");
+  });
 });
