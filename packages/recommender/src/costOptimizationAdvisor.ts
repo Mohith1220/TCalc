@@ -63,6 +63,10 @@ function buildTradeoffSummary(baselineCost: number, targetCost: number, model: M
   if (Math.abs(diff) < 0.01) {
     return `Cost-neutral alternative to ${model.displayName} with identical economic footprint.`;
   }
+  // A percentage change is undefined when the baseline spends nothing, so report finite absolute added cost instead.
+  if (baselineCost <= 0) {
+    return `Adds $${diff.toFixed(2)}/mo over the zero-cost baseline to adopt ${model.displayName} (percentage uplift undefined).`;
+  }
   if (diff < 0) {
     const percent = Math.round((Math.abs(diff) / baselineCost) * 100);
     return `Delivers ${percent}% cost reduction. Ideal for offloading standard repetitive development prompts.`;
